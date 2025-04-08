@@ -55,6 +55,43 @@ export async function loader({ request }: LoaderFunctionArgs) {
   );
 }
 
+import { isRouteErrorResponse, useRouteError } from '@remix-run/react';
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <html lang="en">
+        <head>
+          <title>{error.status} {error.statusText}</title>
+        </head>
+        <body className="flex flex-col justify-center items-center h-screen text-center p-4 bg-white text-black">
+          <h1 className="text-6xl font-bold">{error.status}</h1>
+          <p className="text-xl mt-2">{error.statusText}</p>
+          {error.data && <p className="text-gray-600 mt-1">{error.data}</p>}
+          <a href="/" className="mt-6 text-blue-600 underline">Back to Home</a>
+        </body>
+      </html>
+    );
+  }
+
+  return (
+    <html lang="en">
+      <head>
+        <title>App Error</title>
+      </head>
+      <body className="flex flex-col justify-center items-center h-screen text-center p-4 bg-white text-black">
+        <h1 className="text-4xl font-bold mb-2">Something went wrong</h1>
+        <p className="text-red-600">
+          {error instanceof Error ? error.message : 'Unknown error occurred'}
+        </p>
+        <a href="/" className="mt-6 text-blue-600 underline">Back to Home</a>
+      </body>
+    </html>
+  );
+}
+
 function App() {
   const { env, toast } = useLoaderData<typeof loader>();
 
