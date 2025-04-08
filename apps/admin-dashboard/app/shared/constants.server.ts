@@ -4,6 +4,9 @@ import { Environment } from '@oyster/core/admin-dashboard/ui';
 
 const EnvironmentVariable = z.string().trim().min(1);
 
+// Helper for optional fields that can be empty strings
+const OptionalEnvironmentVariable = z.string().optional();
+
 const BaseEnvironmentConfig = z.object({
   ADMIN_DASHBOARD_URL: EnvironmentVariable,
   AIRTABLE_API_KEY: EnvironmentVariable,
@@ -36,12 +39,36 @@ const EnvironmentConfig = z.discriminatedUnion('ENVIRONMENT', [
     GOOGLE_DRIVE_RESUME_BOOKS_FOLDER_ID: true,
     MEMBER_PROFILE_URL: true,
     SENTRY_DSN: true,
-  }).extend({
-    ENVIRONMENT: z.literal(Environment.DEVELOPMENT),
-    SMTP_HOST: EnvironmentVariable.optional(),
-    SMTP_PASSWORD: EnvironmentVariable.optional(),
-    SMTP_USERNAME: EnvironmentVariable.optional(),
-  }),
+  })
+    .extend({
+      ENVIRONMENT: z.literal(Environment.DEVELOPMENT),
+      SMTP_HOST: OptionalEnvironmentVariable,
+      SMTP_PASSWORD: OptionalEnvironmentVariable,
+      SMTP_USERNAME: OptionalEnvironmentVariable,
+    })
+    .refine(
+      (data) => {
+        // Allow optional fields to be empty strings
+        const optionalFields = [
+          'AIRTABLE_API_KEY',
+          'AIRTABLE_FAMILY_BASE_ID',
+          'AIRTABLE_MEMBERS_TABLE_ID',
+          'AIRTABLE_RESUME_BOOKS_BASE_ID',
+          'GITHUB_TOKEN',
+          'GOOGLE_CLIENT_ID',
+          'GOOGLE_CLIENT_SECRET',
+          'GOOGLE_DRIVE_RESUME_BOOKS_FOLDER_ID',
+          'MEMBER_PROFILE_URL',
+          'SENTRY_DSN',
+        ];
+        return optionalFields.every(
+          (field) => data[field] === undefined || data[field] === '' || data[field].length >= 1
+        );
+      },
+      {
+        message: 'Optional fields must be non-empty if provided',
+      }
+    ),
   BaseEnvironmentConfig.extend({
     ENVIRONMENT: z.literal(Environment.PRODUCTION),
     POSTMARK_API_TOKEN: EnvironmentVariable,
