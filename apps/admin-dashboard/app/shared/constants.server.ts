@@ -1,3 +1,7 @@
+console.log('process.env:', process.env);
+
+export const ENV = EnvironmentConfig.parse(process.env);
+
 import { z } from 'zod';
 
 import { Environment } from '@oyster/core/admin-dashboard/ui';
