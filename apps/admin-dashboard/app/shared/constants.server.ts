@@ -2,10 +2,14 @@ import { z } from 'zod';
 
 import { Environment } from '@oyster/core/admin-dashboard/ui';
 
+// Validation for required non-empty strings
 const EnvironmentVariable = z.string().trim().min(1);
 
-// Helper for optional fields that can be empty strings
-const OptionalEnvironmentVariable = z.string().optional();
+// Validation for optional fields (can be undefined or empty strings)
+const OptionalEnvironmentVariable = z
+  .string()
+  .transform((val) => (val === '' ? undefined : val))
+  .optional();
 
 const BaseEnvironmentConfig = z.object({
   ADMIN_DASHBOARD_URL: EnvironmentVariable,
@@ -28,27 +32,35 @@ const BaseEnvironmentConfig = z.object({
 });
 
 const EnvironmentConfig = z.discriminatedUnion('ENVIRONMENT', [
-  BaseEnvironmentConfig.partial({
-    AIRTABLE_API_KEY: true,
-    AIRTABLE_FAMILY_BASE_ID: true,
-    AIRTABLE_MEMBERS_TABLE_ID: true,
-    AIRTABLE_RESUME_BOOKS_BASE_ID: true,
-    GITHUB_TOKEN: true,
-    GOOGLE_CLIENT_ID: true,
-    GOOGLE_CLIENT_SECRET: true,
-    GOOGLE_DRIVE_RESUME_BOOKS_FOLDER_ID: true,
-    MEMBER_PROFILE_URL: true,
-    SENTRY_DSN: true,
-  })
-    .extend({
+  // Development mode
+  z
+    .object({
+      // Required fields
+      ADMIN_DASHBOARD_URL: EnvironmentVariable,
+      API_URL: EnvironmentVariable,
+      DATABASE_URL: EnvironmentVariable,
       ENVIRONMENT: z.literal(Environment.DEVELOPMENT),
+      JWT_SECRET: EnvironmentVariable,
+      REDIS_URL: EnvironmentVariable,
+      SESSION_SECRET: EnvironmentVariable,
+      // Optional fields (can be empty strings)
+      AIRTABLE_API_KEY: OptionalEnvironmentVariable,
+      AIRTABLE_FAMILY_BASE_ID: OptionalEnvironmentVariable,
+      AIRTABLE_MEMBERS_TABLE_ID: OptionalEnvironmentVariable,
+      AIRTABLE_RESUME_BOOKS_BASE_ID: OptionalEnvironmentVariable,
+      GITHUB_TOKEN: OptionalEnvironmentVariable,
+      GOOGLE_CLIENT_ID: OptionalEnvironmentVariable,
+      GOOGLE_CLIENT_SECRET: OptionalEnvironmentVariable,
+      GOOGLE_DRIVE_RESUME_BOOKS_FOLDER_ID: OptionalEnvironmentVariable,
+      MEMBER_PROFILE_URL: OptionalEnvironmentVariable,
+      SENTRY_DSN: OptionalEnvironmentVariable,
       SMTP_HOST: OptionalEnvironmentVariable,
       SMTP_PASSWORD: OptionalEnvironmentVariable,
       SMTP_USERNAME: OptionalEnvironmentVariable,
     })
     .refine(
       (data) => {
-        // Allow optional fields to be empty strings
+        // Ensure optional fields are either undefined or non-empty if provided
         const optionalFields = [
           'AIRTABLE_API_KEY',
           'AIRTABLE_FAMILY_BASE_ID',
@@ -60,15 +72,19 @@ const EnvironmentConfig = z.discriminatedUnion('ENVIRONMENT', [
           'GOOGLE_DRIVE_RESUME_BOOKS_FOLDER_ID',
           'MEMBER_PROFILE_URL',
           'SENTRY_DSN',
+          'SMTP_HOST',
+          'SMTP_PASSWORD',
+          'SMTP_USERNAME',
         ];
         return optionalFields.every(
-          (field) => data[field] === undefined || data[field] === '' || data[field].length >= 1
+          (field) => data[field] === undefined || data[field].length >= 1
         );
       },
       {
         message: 'Optional fields must be non-empty if provided',
       }
     ),
+  // Production mode
   BaseEnvironmentConfig.extend({
     ENVIRONMENT: z.literal(Environment.PRODUCTION),
     POSTMARK_API_TOKEN: EnvironmentVariable,
